@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, escape
 from my_vsearch import vsearch as vs
 
 app = Flask(__name__)
@@ -6,7 +6,7 @@ app = Flask(__name__)
 
 def log_request(req: 'flask_request', res: str) -> None:
     with open('vsearch.log', 'a') as log:
-        print(req, res, file=log)
+        print(req.form, req.remote_addr, req.user_agent, res, file=log, sep='|')
 
 
 @app.route('/search4', methods=['POST'])
@@ -27,10 +27,18 @@ def entry_page() -> 'html':
 
 
 @app.route('/viewlog')
-def view_the_log() -> str:
+def view_the_log() -> 'html':
+    contents = []
     with open('vsearch.log') as log:
-        contents = log.read()
-        return contents
+        for line in log:
+            contents.append([])
+            for item in line.split('|'):
+                contents[-1].append(escape(item))
+    titles = ('From data', 'Remote_addr', 'User_agent', 'Results')
+    return render_template('viewlog.html',
+                           the_title='View Log',
+                           the_row_titles=titles,
+                           the_data=contents)
 
 
 if __name__ == '__main__':
